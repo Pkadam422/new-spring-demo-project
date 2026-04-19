@@ -8,6 +8,9 @@ pipeline {
 
     environment {
         SONAR_SERVER = 'sonar-server'
+        AWS_REGION = 'ap-south-1'
+        ECR_REPO = '538782572682.dkr.ecr.ap-south-1.amazonaws.com/devops-project'
+        IMAGE_TAG = "latest"
     }
 
     stages {
@@ -49,5 +52,24 @@ pipeline {
                 sh 'docker build -t devops-demo -f docker/Dockerfile .'
             }
          } 
+        stage('ECR Login') {
+    steps {
+        sh '''
+        aws ecr get-login-password --region $AWS_REGION | \
+        docker login --username AWS --password-stdin $ECR_REPO
+        '''
+        }
+      }
+      stage('Tag Image') {
+    steps {
+        sh 'docker tag devops-demo:latest $ECR_REPO:latest'
+         }
+        }
+
+       stage('Push to ECR') {
+         steps {
+        sh 'docker push $ECR_REPO:latest'
+       }
      }
+    }
 }
