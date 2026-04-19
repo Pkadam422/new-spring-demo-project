@@ -6,6 +6,10 @@ pipeline {
         maven 'maven3'
     }
 
+    environment {
+        SONAR_SERVER = 'sonar-server'
+    }
+
     stages {
 
         stage('Checkout Code') {
@@ -14,9 +18,30 @@ pipeline {
             }
         }
 
-        stage('Build with Maven') {
+        stage('Build') {
             steps {
                 sh 'mvn clean package'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonar-server') {
+                    sh '''
+                    mvn sonar:sonar \
+                    -Dsonar.projectKey=devops-project \
+                    -Dsonar.host.url=http://3.109.2.196:9000 \
+                    -Dsonar.login=$SONAR_AUTH_TOKEN
+                    '''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
     }
